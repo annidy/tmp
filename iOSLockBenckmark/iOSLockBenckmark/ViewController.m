@@ -14,6 +14,7 @@
 typedef NS_ENUM(NSUInteger, LockType) {
     LockTypeOSSpinLock = 0,
     LockTypedispatch_semaphore,
+    LockTypedispatch_semaphore_with_timout,
     LockTypepthread_mutex,
     LockTypeNSCondition,
     LockTypeNSLock,
@@ -67,6 +68,7 @@ int TimeCount = 0;
 - (IBAction)log:(id)sender {
     printf("OSSpinLock:               %8.2f ms\n", TimeCosts[LockTypeOSSpinLock] * 1000);
     printf("dispatch_semaphore:       %8.2f ms\n", TimeCosts[LockTypedispatch_semaphore] * 1000);
+    printf("dispatch_semaphore(timeout): %8.2f ms\n", TimeCosts[LockTypedispatch_semaphore_with_timout] * 1000);
     printf("pthread_mutex:            %8.2f ms\n", TimeCosts[LockTypepthread_mutex] * 1000);
     printf("NSCondition:              %8.2f ms\n", TimeCosts[LockTypeNSCondition] * 1000);
     printf("NSLock:                   %8.2f ms\n", TimeCosts[LockTypeNSLock] * 1000);
@@ -107,6 +109,18 @@ int TimeCount = 0;
         printf("dispatch_semaphore:       %8.2f ms\n", (end - begin) * 1000);
     }
     
+    {
+        dispatch_semaphore_t lock =  dispatch_semaphore_create(1);
+        begin = CACurrentMediaTime();
+        for (int i = 0; i < count; i++) {
+            dispatch_semaphore_wait(lock, dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC));
+            dispatch_semaphore_signal(lock);
+        }
+        end = CACurrentMediaTime();
+        TimeCosts[LockTypedispatch_semaphore_with_timout] += end - begin;
+        printf("dispatch_semaphore(timeout):  %8.2f ms\n", (end - begin) * 1000);
+    }
+
     
     {
         pthread_mutex_t lock;
